@@ -1,0 +1,16 @@
+🔧 Dependencias del Script
+                                         SE INSTALAN AL EJECUTAR SCRIPTS 
+Paquetes del Sistema
+Estos son paquetes esenciales que se instalan desde el gestor de paquetes apt:
+bash
+sudo apt-get update && sudo apt-get install -y \
+    dialog \       # Para el menú interactivo
+    curl \         # Para realizar peticiones HTTP
+    nmap \         # Para escaneo de redes y puertos
+    jq \           # Para manejar JSON
+    exiftool \     # Para extraer metadatos de imágenes
+    tor \          # Para navegación anónima y consultas a la dark web
+    dnsrecon \     # Para análisis de DNS y subdominios
+    whois \        # Para búsqueda de información de dominios
+    git \          # Para clonar repositorios y herramientas de OSINT
+    python3-pip    # Para instalar módulos de Python
