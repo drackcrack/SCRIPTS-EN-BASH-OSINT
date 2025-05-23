@@ -1,0 +1,291 @@
+#!/bin/bash
+
+# Definición de colores para la salida
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+CYAN='\033[0;36m'
+NC='\033[0m' # Sin color
+
+# Verificación de dependencias e instalación si es necesario
+install_dependencies() {
+    echo -e "${CYAN}Verificando e instalando dependencias...${NC}"
+    
+    # Lista de paquetes necesarios
+    required_packages=("dialog" "curl" "nmap" "jq" "exiftool" "tor" "dnsrecon" "whois" "git" "python3-pip")
+
+    # Verificar si los paquetes están instalados, si no lo están, instalarlos
+    for pkg in "${required_packages[@]}"; do
+        dpkg -l | grep -q $pkg
+        if [ $? -ne 0 ]; then
+            echo -e "${YELLOW}Instalando $pkg...${NC}"
+            sudo apt-get install -y $pkg
+        else
+            echo -e "${GREEN}$pkg ya está instalado.${NC}"
+        fi
+    done
+
+    # Instalar herramientas adicionales si es necesario
+    if ! command -v tor &> /dev/null; then
+        echo -e "${YELLOW}Instalando Tor...${NC}"
+        sudo apt-get install -y tor
+    fi
+
+    # Instalar dnsrecon si no está instalado
+    if ! command -v dnsrecon &> /dev/null; then
+        echo -e "${YELLOW}Instalando dnsrecon...${NC}"
+        sudo apt-get install -y python3-dnsrecon
+    fi
+
+    # Instalar pip y el paquete de requests si no están instalados
+    if ! command -v pip3 &> /dev/null; then
+        echo -e "${YELLOW}Instalando pip3...${NC}"
+        sudo apt-get install -y python3-pip
+    fi
+}
+
+# Llamar a la función de instalación
+install_dependencies
+
+# Función para mostrar la política de seguridad y uso
+show_policies() {
+    dialog --title "Política de Seguridad y Uso" --msgbox "\
+    ${CYAN}POLÍTICA DE SEGURIDAD:${NC}
+    1. El uso de este script está sujeto a las leyes locales, nacionales e internacionales.
+    2. Está prohibido realizar actividades ilegales, invasivas o maliciosas utilizando este script.
+    3. El uso inapropiado de las herramientas puede resultar en la pérdida de acceso a los servicios utilizados.
+
+    ${CYAN}POLÍTICA DE USO:${NC}
+    1. Este script está destinado a fines educativos, de auditoría y de análisis.
+    2. El uso del script para fines maliciosos, como el acceso no autorizado a sistemas, está estrictamente prohibido.
+    3. Los usuarios son responsables del uso que hagan de las herramientas proporcionadas por el script.
+    
+    ${CYAN}CREADOR:${NC} By Drack_Dragos (Dragos Florian Oprea)
+    
+    Presiona [OK] para continuar." 15 50
+}
+
+# Función para mostrar los resultados en un panel aparte
+show_results_panel() {
+    result=$1
+    dialog --title "Resultados" --msgbox "$result" 20 60
+}
+
+# Función para realizar la búsqueda profunda
+deep_search() {
+    option=$(dialog --title "Búsqueda Profunda" --menu "Seleccione una opción" 15 60 5 \
+    1 "🔍 Whois Lookup" \
+    2 "📱 Buscar en Redes Sociales" \
+    3 "🌐 Wayback Machine" \
+    4 "🖥️ Búsqueda avanzada en Google" \
+    5 "🔙 Volver al Menú Principal" \
+    3>&1 1>&2 2>&3)
+
+    case $option in
+        1)
+            domain=$(dialog --inputbox "Ingrese el dominio a buscar:" 8 50 3>&1 1>&2 2>&3)
+            result=$(whois $domain)
+            show_results_panel "$result"
+            ;;
+        2)
+            user_info=$(dialog --inputbox "Ingrese el nombre de usuario, correo o dominio para buscar en redes sociales:" 8 50 3>&1 1>&2 2>&3)
+            result=$(curl -s "https://www.pipl.com/search/?q=$user_info")
+            show_results_panel "$result"
+            ;;
+        3)
+            website=$(dialog --inputbox "Ingrese el URL del sitio web para buscar en Wayback Machine:" 8 50 3>&1 1>&2 2>&3)
+            result=$(curl -s "https://archive.org/wayback/available?url=$website")
+            show_results_panel "$result"
+            ;;
+        4)
+            search_query=$(dialog --inputbox "Ingrese su consulta de búsqueda avanzada en Google:" 8 50 3>&1 1>&2 2>&3)
+            result=$(curl -s "https://www.google.com/search?q=$search_query")
+            show_results_panel "$result"
+            ;;
+        5) return ;;
+        *) echo -e "${RED}Opción no válida${NC}" ;;
+    esac
+}
+
+# Función de análisis de ciberseguridad
+cybersecurity_analysis() {
+    option=$(dialog --title "Análisis de Ciberseguridad" --menu "Seleccione una opción" 15 60 5 \
+    1 "🌐 Escaneo de Subdominios" \
+    2 "🔍 Búsqueda en la Dark Web" \
+    3 "⚠️ Análisis de Vulnerabilidades" \
+    4 "💻 Búsqueda de Fugas de Datos" \
+    5 "🔙 Volver al Menú Principal" \
+    3>&1 1>&2 2>&3)
+    
+    case $option in
+        1) 
+            domain=$(dialog --inputbox "Ingrese el dominio a escanear:" 8 50 3>&1 1>&2 2>&3)
+            result=$(dnsrecon -d $domain -t std)
+            show_results_panel "$result"
+            ;;
+        2) 
+            domain=$(dialog --inputbox "Ingrese el dominio a buscar:" 8 50 3>&1 1>&2 2>&3)
+            result=$(torify curl "https://darkweb.com/search?query=$domain")
+            show_results_panel "$result"
+            ;;
+        3) 
+            target=$(dialog --inputbox "Ingrese la IP o dominio a analizar:" 8 50 3>&1 1>&2 2>&3)
+            result=$(nmap -sV $target)
+            show_results_panel "$result"
+            ;;
+        4) 
+            email=$(dialog --inputbox "Ingrese el correo electrónico para verificar fugas:" 8 50 3>&1 1>&2 2>&3)
+            result=$(curl -s "https://haveibeenpwned.com/api/v3/breachedaccount/$email" | jq .)
+            show_results_panel "$result"
+            ;;
+        5) return ;;
+        *) echo -e "${RED}Opción no válida${NC}" ;;
+    esac
+}
+
+# Función de investigación y periodismo
+journalism_research() {
+    option=$(dialog --title "Investigación y Periodismo" --menu "Seleccione una opción" 15 60 5 \
+    1 "✅ Verificación de Hechos" \
+    2 "📜 Búsqueda en Registros Públicos" \
+    3 "🖼️ Análisis de Imágenes y Metadatos" \
+    4 "🔙 Volver al Menú Principal" \
+    3>&1 1>&2 2>&3)
+    
+    case $option in
+        1) 
+            fact_check=$(dialog --inputbox "Ingrese el texto o URL a verificar:" 8 50 3>&1 1>&2 2>&3)
+            result=$(curl "https://factcheckapi.com/api?query=$fact_check")
+            show_results_panel "$result"
+            ;;
+        2) 
+            company_name=$(dialog --inputbox "Ingrese el nombre de la empresa a buscar:" 8 50 3>&1 1>&2 2>&3)
+            result=$(curl "https://api.opencorporates.com/v0.4/companies/search?q=$company_name")
+            show_results_panel "$result"
+            ;;
+        3) 
+            image_file=$(dialog --fselect /home/user/ 14 50 3>&1 1>&2 2>&3)
+            result=$(exiftool $image_file)
+            show_results_panel "$result"
+            ;;
+        4) return ;;
+        *) echo -e "${RED}Opción no válida${NC}" ;;
+    esac
+}
+
+# Función de inteligencia empresarial
+business_intelligence() {
+    option=$(dialog --title "Inteligencia Empresarial" --menu "Seleccione una opción" 15 60 5 \
+    1 "📊 Análisis de Competidores" \
+    2 "🌍 Monitoreo de Reputación Online" \
+    3 "📈 Investigación de Mercado" \
+    4 "🔙 Volver al Menú Principal" \
+    3>&1 1>&2 2>&3)
+    
+    case $option in
+        1) 
+            competitor_name=$(dialog --inputbox "Ingrese el nombre de la competencia:" 8 50 3>&1 1>&2 2>&3)
+            result=$(curl "https://api.competitorsearch.com/search?q=$competitor_name")
+            show_results_panel "$result"
+            ;;
+        2) 
+            reputation_query=$(dialog --inputbox "Ingrese el nombre de la marca o empresa:" 8 50 3>&1 1>&2 2>&3)
+            result=$(curl "https://api.reputationmonitor.com/search?q=$reputation_query")
+            show_results_panel "$result"
+            ;;
+        3) 
+            market_query=$(dialog --inputbox "Ingrese el producto o servicio a investigar:" 8 50 3>&1 1>&2 2>&3)
+            result=$(curl "https://api.marketresearch.com/lookup?q=$market_query")
+            show_results_panel "$result"
+            ;;
+        4) return ;;
+        *) echo -e "${RED}Opción no válida${NC}" ;;
+    esac
+}
+
+# Función de rastreo de personas
+people_tracking() {
+    option=$(dialog --title "Localización y Rastreo de Personas" --menu "Seleccione una opción" 15 60 5 \
+    1 "👤 Búsqueda por Nombre Completo" \
+    2 "📧 Búsqueda por Correo Electrónico" \
+    3 "🔍 Búsqueda por Nombre de Usuario" \
+    4 "🔙 Volver al Menú Principal" \
+    3>&1 1>&2 2>&3)
+    
+    case $option in
+        1) 
+            person_name=$(dialog --inputbox "Ingrese el nombre completo de la persona:" 8 50 3>&1 1>&2 2>&3)
+            result=$(curl "https://api.peoplelookup.com/name/$person_name")
+            show_results_panel "$result"
+            ;;
+        2) 
+            email_address=$(dialog --inputbox "Ingrese el correo electrónico a buscar:" 8 50 3>&1 1>&2 2>&3)
+            result=$(curl "https://api.emaillookup.com/search?q=$email_address")
+            show_results_panel "$result"
+            ;;
+        3) 
+            username=$(dialog --inputbox "Ingrese el nombre de usuario a buscar:" 8 50 3>&1 1>&2 2>&3)
+            result=$(curl "https://api.userlookup.com/username/$username")
+            show_results_panel "$result"
+            ;;
+        4) return ;;
+        *) echo -e "${RED}Opción no válida${NC}" ;;
+    esac
+}
+
+# Función de seguridad nacional/militar
+national_security() {
+    option=$(dialog --title "Seguridad Nacional/Militar" --menu "Seleccione una opción" 15 60 5 \
+    1 "🔐 Análisis de Amenazas Cibernéticas" \
+    2 "🛡️ Monitoreo de Actividad Sospechosa" \
+    3 "💣 Investigación de Actividades Terroristas" \
+    4 "🔙 Volver al Menú Principal" \
+    3>&1 1>&2 2>&3)
+    
+    case $option in
+        1) 
+            result=$(curl "https://api.cyberthreats.com/analyze?query=cyber_attack")
+            show_results_panel "$result"
+            ;;
+        2) 
+            result=$(curl "https://api.suspiciousactivity.com/monitor?query=suspicious_activity")
+            show_results_panel "$result"
+            ;;
+        3) 
+            result=$(curl "https://api.terroristactivity.com/investigate?query=terrorism")
+            show_results_panel "$result"
+            ;;
+        4) return ;;
+        *) echo -e "${RED}Opción no válida${NC}" ;;
+    esac
+}
+
+# Llamar al menú principal
+main_menu() {
+    while true; do
+        option=$(dialog --title "Menú Principal de OSINT" --menu "Seleccione una opción" 20 60 8 \
+        1 "🔐 Análisis de Ciberseguridad" \
+        2 "📰 Investigación y Periodismo" \
+        3 "💼 Inteligencia Empresarial" \
+        4 "👤 Localización y Rastreo de Personas" \
+        5 "⚔️ Seguridad Nacional/Militar" \
+        6 "🔍 Búsqueda Profunda" \
+        7 "❌ Salir" \
+        3>&1 1>&2 2>&3)
+        
+        case $option in
+            1) cybersecurity_analysis ;;
+            2) journalism_research ;;
+            3) business_intelligence ;;
+            4) people_tracking ;;
+            5) national_security ;;
+            6) deep_search ;;
+            7) clear; echo -e "${YELLOW}Saliendo...${NC}"; exit 0 ;;
+            *) echo -e "${RED}Opción no válida${NC}" ;;
+        esac
+    done
+}
+
+# Llamar al menú principal
+show_policies
+main_menu
